@@ -207,6 +207,9 @@ def hamming_dist(h1: str, h2: str) -> int:
         if x & 1: dist += 1
     return dist
 
+def is_duplicate_content(incoming: str, stored: Any = None) -> bool:
+    return isinstance(stored, str) and incoming.strip() == stored.strip()
+
 def sigmoid(x: float) -> float:
     return 1.0 / (1.0 + math.exp(-x))
 
@@ -388,9 +391,10 @@ async def calc_multi_vec_fusion_score(mid: str, qe: Dict[str, List[float]], w: D
 
 async def add_hsg_memory(content: str, tags: Optional[str] = None, metadata: Any = None, user_id: Optional[str] = None) -> Dict[str, Any]:
     simhash = compute_simhash(content)
-    existing = db.fetchone("SELECT * FROM memories WHERE simhash=? ORDER BY salience DESC LIMIT 1", (simhash,))
+    collisions = db.fetchall("SELECT * FROM memories WHERE simhash=? ORDER BY salience DESC", (simhash,))
+    existing = next((row for row in collisions if is_duplicate_content(content, row["content"])), None)
 
-    if existing and hamming_dist(simhash, existing["simhash"]) <= 3:
+    if existing:
         now = int(time.time()*1000)
         boost = min(1.0, (existing["salience"] or 0) + 0.15)
         db.execute("UPDATE memories SET last_seen_at=?, salience=?, updated_at=? WHERE id=?", (now, boost, now, existing["id"]))

@@ -28,7 +28,7 @@ type q_type = {
     upd_mem_with_sector: { run: (...p: any[]) => Promise<void> };
     del_mem: { run: (...p: any[]) => Promise<void> };
     get_mem: { get: (id: string) => Promise<any> };
-    get_mem_by_simhash: { get: (simhash: string) => Promise<any> };
+    get_mem_by_simhash: { all: (simhash: string) => Promise<any[]> };
     all_mem: { all: (limit: number, offset: number) => Promise<any[]> };
     all_mem_by_sector: {
         all: (sector: string, limit: number, offset: number) => Promise<any[]>;
@@ -347,9 +347,9 @@ if (is_pg) {
             get: (id) => get_async(`select * from ${m} where id=$1`, [id]),
         },
         get_mem_by_simhash: {
-            get: (simhash) =>
-                get_async(
-                    `select * from ${m} where simhash=$1 order by salience desc limit 1`,
+            all: (simhash) =>
+                all_async(
+                    `select * from ${m} where simhash=$1 order by salience desc`,
                     [simhash],
                 ),
         },
@@ -759,9 +759,9 @@ if (is_pg) {
             get: (id) => one("select * from memories where id=?", [id]),
         },
         get_mem_by_simhash: {
-            get: (simhash) =>
-                one(
-                    "select * from memories where simhash=? order by salience desc limit 1",
+            all: (simhash) =>
+                many(
+                    "select * from memories where simhash=? order by salience desc",
                     [simhash],
                 ),
         },

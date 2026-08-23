@@ -382,6 +382,12 @@ export function hamming_dist(hash1: string, hash2: string): number {
     }
     return dist;
 }
+export function is_duplicate_content(
+    incoming: string,
+    stored?: string | null,
+): boolean {
+    return typeof stored === "string" && incoming.trim() === stored.trim();
+}
 export function sigmoid(x: number): number {
     return 1 / (1 + Math.exp(-x));
 }
@@ -1157,8 +1163,11 @@ export async function add_hsg_memory(
     deduplicated?: boolean;
 }> {
     const simhash = compute_simhash(content);
-    const existing = await q.get_mem_by_simhash.get(simhash);
-    if (existing && hamming_dist(simhash, existing.simhash) <= 3) {
+    const collisions = await q.get_mem_by_simhash.all(simhash);
+    const existing = collisions.find((row: any) =>
+        is_duplicate_content(content, row?.content),
+    );
+    if (existing) {
         const now = Date.now();
         const boosted_sal = Math.min(1, existing.salience + 0.15);
         await q.upd_seen.run(existing.id, now, boosted_sal, now);
