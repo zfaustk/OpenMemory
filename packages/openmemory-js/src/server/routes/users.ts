@@ -1,9 +1,10 @@
-import { q, vector_store } from "../../core/db";
+import { q } from "../../core/db";
 import { p } from "../../utils";
 import {
     update_user_summary,
     auto_update_user_summaries,
 } from "../../memory/user_summary";
+import { delete_all_memories } from "../../memory/hsg";
 import { require_tenant, reject_tenant_mismatch } from "../middleware/tenant";
 
 /**
@@ -128,14 +129,7 @@ export const usr = (app: any) => {
         if (!tenant) return;
         if (reject_tenant_mismatch(res, tenant, req.params.user_id)) return;
         try {
-            const mems = await q.all_mem_by_user.all(tenant, 10000, 0);
-            let deleted = 0;
-            for (const m of mems) {
-                await q.del_mem.run(m.id);
-                await vector_store.deleteVectors(m.id);
-                await q.del_waypoints.run(m.id, m.id);
-                deleted++;
-            }
+            const deleted = await delete_all_memories(tenant);
             res.json({ ok: true, deleted });
         } catch (err: any) {
             console.error("[users] delete memories failed:", err);

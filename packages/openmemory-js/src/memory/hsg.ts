@@ -1301,28 +1301,32 @@ export async function delete_memory(id: string): Promise<boolean> {
         await q.del_waypoints.run(id, id);
         await vector_store.deleteVectors(id);
         await transaction.commit();
-        clear_cache(mem.user_id);
         return true;
     } catch (error) {
         await transaction.rollback();
         throw error;
+    } finally {
+        clear_cache(mem.user_id);
     }
 }
 
 export async function delete_all_memories(user_id: string): Promise<number> {
     let deleted = 0;
-    while (true) {
-        const mems = await q.all_mem_by_user.all(user_id, 1000, 0);
-        if (!mems.length) break;
-        for (const m of mems) {
-            await q.del_mem.run(m.id);
-            await q.del_waypoints.run(m.id, m.id);
-            await vector_store.deleteVectors(m.id);
-            deleted++;
+    try {
+        while (true) {
+            const mems = await q.all_mem_by_user.all(user_id, 1000, 0);
+            if (!mems.length) break;
+            for (const m of mems) {
+                await q.del_mem.run(m.id);
+                await q.del_waypoints.run(m.id, m.id);
+                await vector_store.deleteVectors(m.id);
+                deleted++;
+            }
         }
+        return deleted;
+    } finally {
+        clear_cache(user_id);
     }
-    clear_cache(user_id);
-    return deleted;
 }
 export async function reinforce_memory(
     id: string,

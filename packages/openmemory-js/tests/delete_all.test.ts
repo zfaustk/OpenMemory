@@ -5,6 +5,7 @@ process.env.OM_VECTOR_BACKEND = process.env.OM_VECTOR_BACKEND || "sqlite";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Memory } from "../src/core/memory";
+import { delete_memory } from "../src/memory/hsg";
 import { all_async, run_async } from "../src/core/db";
 
 describe("delete_all", () => {
@@ -47,5 +48,23 @@ describe("delete_all", () => {
             [uid, other],
         );
         expect(rows.map((r: any) => r.user_id)).toEqual([other]);
+    });
+
+    it("delete_memory drops cached hits for that user", async () => {
+        const text = "Mercury is the closest planet to the Sun.";
+        const added = await mem.add(text, { user_id: uid });
+        const before = await mem.search("closest planet to the Sun", {
+            user_id: uid,
+            limit: 5,
+        });
+        expect(before.some((r: any) => r.id === added.id)).toBe(true);
+
+        await delete_memory(added.id);
+
+        const after = await mem.search("closest planet to the Sun", {
+            user_id: uid,
+            limit: 5,
+        });
+        expect(after.every((r: any) => r.id !== added.id)).toBe(true);
     });
 });

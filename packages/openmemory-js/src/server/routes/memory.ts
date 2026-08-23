@@ -2,6 +2,7 @@ import { q, vector_store } from "../../core/db";
 import { j, p } from "../../utils";
 import {
     add_hsg_memory,
+    delete_memory,
     hsg_query,
     reinforce_memory,
     update_memory,
@@ -357,9 +358,7 @@ export function mem(app: any) {
             if (m.user_id && m.user_id !== tenant) {
                 return res.status(403).json({ err: "forbidden" });
             }
-            await q.del_mem.run(id);
-            await vector_store.deleteVectors(id);
-            await q.del_waypoints.run(id, id);
+            await delete_memory(id);
             res.json({ ok: true });
         } catch (e: any) {
             console.error("[mem] /memory/:id delete failed:", e);
