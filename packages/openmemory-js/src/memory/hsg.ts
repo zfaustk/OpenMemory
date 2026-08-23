@@ -775,6 +775,35 @@ const TTL = 60000;
 const VEC_CACHE_MAX = 1000;
 let active_queries = 0;
 
+export function clear_cache(user_id?: string): void {
+    sal_cache.clear();
+    seg_cache.clear();
+    if (!user_id) {
+        cache.clear();
+        return;
+    }
+    for (const key of [...cache.keys()]) {
+        try {
+            const match = key.match(/:(\d+):(\{.*\}|null)$/);
+            if (!match) {
+                cache.delete(key);
+                continue;
+            }
+            const filters = JSON.parse(match[2]);
+            if (
+                !filters ||
+                typeof filters !== "object" ||
+                !filters.user_id ||
+                filters.user_id === user_id
+            ) {
+                cache.delete(key);
+            }
+        } catch {
+            cache.delete(key);
+        }
+    }
+}
+
 const get_segment = async (seg: number): Promise<any[]> => {
     if (seg_cache.has(seg)) return seg_cache.get(seg)!;
     const rows = await q.get_mem_by_segment.all(seg);
@@ -1272,11 +1301,28 @@ export async function delete_memory(id: string): Promise<boolean> {
         await q.del_waypoints.run(id, id);
         await vector_store.deleteVectors(id);
         await transaction.commit();
+        clear_cache(mem.user_id);
         return true;
     } catch (error) {
         await transaction.rollback();
         throw error;
     }
+}
+
+export async function delete_all_memories(user_id: string): Promise<number> {
+    let deleted = 0;
+    while (true) {
+        const mems = await q.all_mem_by_user.all(user_id, 1000, 0);
+        if (!mems.length) break;
+        for (const m of mems) {
+            await q.del_mem.run(m.id);
+            await q.del_waypoints.run(m.id, m.id);
+            await vector_store.deleteVectors(m.id);
+            deleted++;
+        }
+    }
+    clear_cache(user_id);
+    return deleted;
 }
 export async function reinforce_memory(
     id: string,

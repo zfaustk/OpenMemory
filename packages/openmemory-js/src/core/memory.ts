@@ -1,4 +1,9 @@
-import { add_hsg_memory, hsg_query } from "../memory/hsg";
+import {
+    add_hsg_memory,
+    clear_cache,
+    delete_all_memories,
+    hsg_query,
+} from "../memory/hsg";
 import { q, log_maint_op } from "./db";
 import { env } from "./cfg";
 import { j } from "../utils";
@@ -87,13 +92,18 @@ export class Memory {
     async delete_all(user_id?: string) {
         const uid = user_id || this.default_user;
         if (uid) {
+            const deleted = await delete_all_memories(uid);
+            return { deleted };
         }
+        clear_cache();
+        return { deleted: 0 };
     }
 
     async wipe() {
         console.log("[Memory] Wiping DB...");
 
         await q.clear_all.run();
+        clear_cache();
     }
 
     /**
