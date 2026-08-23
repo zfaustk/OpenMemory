@@ -1163,9 +1163,17 @@ export async function add_hsg_memory(
     deduplicated?: boolean;
 }> {
     const simhash = compute_simhash(content);
-    const collisions = await q.get_mem_by_simhash.all(simhash);
-    const existing = collisions.find((row: any) =>
-        is_duplicate_content(content, row?.content),
+    const uid = user_id || "anonymous";
+    const collisions = await q.get_mem_by_simhash.all(simhash, uid);
+    const stored_form = extract_essence(
+        content,
+        "semantic",
+        env.summary_max_length,
+    );
+    const existing = collisions.find(
+        (row: any) =>
+            is_duplicate_content(content, row?.content) ||
+            is_duplicate_content(stored_form, row?.content),
     );
     if (existing) {
         const now = Date.now();

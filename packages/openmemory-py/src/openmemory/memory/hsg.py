@@ -391,8 +391,21 @@ async def calc_multi_vec_fusion_score(mid: str, qe: Dict[str, List[float]], w: D
 
 async def add_hsg_memory(content: str, tags: Optional[str] = None, metadata: Any = None, user_id: Optional[str] = None) -> Dict[str, Any]:
     simhash = compute_simhash(content)
-    collisions = db.fetchall("SELECT * FROM memories WHERE simhash=? ORDER BY salience DESC", (simhash,))
-    existing = next((row for row in collisions if is_duplicate_content(content, row["content"])), None)
+    uid = user_id or "anonymous"
+    collisions = db.fetchall(
+        "SELECT * FROM memories WHERE simhash=? AND user_id=? ORDER BY salience DESC",
+        (simhash, uid),
+    )
+    stored_form = extract_essence(content, "semantic", env.summary_max_length)
+    existing = next(
+        (
+            row
+            for row in collisions
+            if is_duplicate_content(content, row["content"])
+            or is_duplicate_content(stored_form, row["content"])
+        ),
+        None,
+    )
 
     if existing:
         now = int(time.time()*1000)
