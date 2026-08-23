@@ -34,4 +34,25 @@ describe("Chinese memory sector classifier", () => {
             confidence: 1,
         });
     });
+
+    it("honors primary_sector as an alias for the sector override", () => {
+        expect(
+            classify_content("这段文字不依赖关键词。", {
+                primary_sector: "procedural",
+            }),
+        ).toEqual({
+            primary: "procedural",
+            additional: [],
+            confidence: 1,
+        });
+    });
+
+    it("prefers sector over primary_sector when both are set", () => {
+        expect(
+            classify_content("这段文字不依赖关键词。", {
+                sector: "emotional",
+                primary_sector: "procedural",
+            }).primary,
+        ).toBe("emotional");
+    });
 });

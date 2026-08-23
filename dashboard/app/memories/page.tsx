@@ -115,7 +115,7 @@ export default function memories() {
                 body: JSON.stringify({
                     content,
                     tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
-                    metadata: { primary_sector: sector },
+                    metadata: { sector },
                     // Explicitly set project_id based on user selected scope
                     project_id: scope === 'project' ? currentProject : 'system_global'
                 }),

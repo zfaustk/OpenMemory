@@ -113,7 +113,9 @@ def compress_vec_for_storage(vec: List[float], target_dim: int) -> List[float]:
     return comp
 
 def classify_content(content: str, metadata: Any = None) -> Dict[str, Any]:
-    meta_sec = metadata.get("sector") if isinstance(metadata, dict) else None
+    meta_sec = None
+    if isinstance(metadata, dict):
+        meta_sec = metadata.get("sector") or metadata.get("primary_sector")
     if meta_sec and meta_sec in SECTOR_CONFIGS:
         return {"primary": meta_sec, "additional": [], "confidence": 1.0}
 

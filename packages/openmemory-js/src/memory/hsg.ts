@@ -270,9 +270,14 @@ export function classify_content(
     content: string,
     metadata?: any,
 ): sector_class {
-    if (metadata?.sector && sectors.includes(metadata.sector)) {
+    const override =
+        (typeof metadata?.sector === "string" && metadata.sector) ||
+        (typeof metadata?.primary_sector === "string" &&
+            metadata.primary_sector) ||
+        undefined;
+    if (override && sectors.includes(override)) {
         return {
-            primary: metadata.sector,
+            primary: override,
             additional: [],
             confidence: 1.0,
         };
